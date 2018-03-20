@@ -1,67 +1,52 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 import xlsxwriter
 import time
-from openpyxl import load_workbook
-import pandas as pd
 
 start_time = time.clock()
 
-option = webdriver.ChromeOptions()
-option.add_argument("--incognito")
-
+# set up webdriver
 browser = webdriver.Chrome(executable_path="C:/Users/cwalsh/Documents/Steve/chromedriver/chromedriver")
-browser.get("https://stats.nba.com/teams/advanced/?sort=W&dir=-1")
-
-timeout = 10
-
-try:
-    WebDriverWait(browser, timeout).until(EC.visibility_of_element_located((By.XPATH,"//table")))
-except TimeoutException:
-    print("Timed out waiting for the page to load")
-    browser.quit()
-
-table_headers = browser.find_elements_by_xpath("//table/thead/tr/th")
-headers = [x.text for x in table_headers]
-# print(headers)
-data_table = browser.find_elements_by_xpath("//table/tbody/tr/td")
-values = [x.text for x in data_table]
-# print(values)
-browser.quit()
-
-print("Values retrieved")
 
 # create excel workbook
-workbook = xlsxwriter.Workbook("C:/Users/cwalsh/Documents/Steve/NBA_Output_"+str(round(time.time(),2))+".xlsx")
-
-# Create output sheet
-workbook.add_worksheet("Teams General Traditional")
-workbook.add_worksheet("Teams General Advanced")
-workbook.add_worksheet("Teams General Four Factors")
-workbook.add_worksheet("Teams General Misc")
-workbook.add_worksheet("Teams General Scoring")
-workbook.add_worksheet("Teams General Opponent")
-workbook.add_worksheet("Teams General Defense")
+workbook = xlsxwriter.Workbook("C:/Users/cwalsh/Documents/Steve/NBA_Output_"+str(round(time.time(), 2))+".xlsx")
 
 
-# activate sheet
-worksheet = workbook.get_worksheet_by_name("Teams General Advanced")
+def get_values(url, sheet_name):
+    browser.get(url)
+    table_headers = browser.find_elements_by_xpath("//table/thead/tr/th")
+    headers = [x.text for x in table_headers]
+    header_count = sum(1 for i in headers if i is not "")
+    data_table = browser.find_elements_by_xpath("//table/tbody/tr/td")
+    values = [x.text for x in data_table]
+
+    print("Values retrieved for " + sheet_name)
+
+    # create & activate sheet
+    workbook.add_worksheet(sheet_name)
+    worksheet = workbook.get_worksheet_by_name(sheet_name)
+
+    # write values
+    for y in range(0, header_count):
+        worksheet.write(0, y, headers[y])
+
+    index = 0
+    for z in range(1, 31):  # 30 NBA Teams
+        for x in range(0, header_count):
+            worksheet.write(z, x, values[index])
+            index += 1
 
 
-# 20 headers
-for y in range(0,20):
-    worksheet.write(0,y,headers[y])
+# call get_values for each url
+get_values("https://stats.nba.com/teams/traditional/?sort=W&dir=-1", "Teams General Traditional")
+get_values("https://stats.nba.com/teams/advanced/?sort=W&dir=-1", "Teams General Advanced")
+get_values("https://stats.nba.com/teams/four-factors/?sort=W&dir=-1", "Teams General Four Factors")
+get_values("https://stats.nba.com/teams/misc/?sort=W&dir=-1", "Teams General Misc")
+get_values("https://stats.nba.com/teams/scoring/?sort=W&dir=-1", "Teams General Scoring")
+get_values("https://stats.nba.com/teams/opponent/?sort=W&dir=-1", "Teams General Opponent")
+get_values("https://stats.nba.com/teams/defense/?sort=W&dir=-1", "Teams General Defense")
 
-# values
-index = 0
-for z in range(1,31):
-    for x in range(0,20):
-        worksheet.write(z,x,values[index])
-        index += 1
-
+# close workbook and browser
 workbook.close()
+browser.quit()
 
-print("Model created in " + str(round(time.clock() - start_time,2)) + " seconds")
+print("Model created in " + str(round((time.clock() - start_time)/60, 2)) + " minutes.")
