@@ -13,6 +13,7 @@ workbook = xlsxwriter.Workbook("C:/Users/cwalsh/Documents/Steve/NBA_Output_"+str
 
 def get_values(url, sheet_name):
     browser.get(url)
+    time.sleep(5)
     table_headers = browser.find_elements_by_xpath("//table/thead/tr/th")
     headers = [x.text for x in table_headers]
     header_count = sum(1 for i in headers if i is not "")
